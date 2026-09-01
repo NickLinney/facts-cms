@@ -1,0 +1,9 @@
+{
+  "name": "facts-cms",
+  "version": "0.0.0-pre-alpha.1",
+  "private": true,
+  "description": "FACTS: a composable meta-model workspace MVP",
+  "main": "server.js",
+  "scripts": {"start": "node server.js", "test": "node --test"},
+  "dependencies": {"express": "^4.21.2", "pg": "^8.13.1"}
+}

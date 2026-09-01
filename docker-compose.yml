@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: facts
+      POSTGRES_USER: facts
+      POSTGRES_PASSWORD: facts
+    ports: ["5432:5432"]
+    volumes:
+      - facts_pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U facts -d facts"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  app:
+    build: .
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://facts:facts@db:5432/facts
+    ports: ["3000:3000"]
+    depends_on:
+      db: {condition: service_healthy}
+volumes:
+  facts_pgdata:
