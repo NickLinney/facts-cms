@@ -14,4 +14,4 @@ For repeatable QA, set `FACTS_RUN_ID=2026-09-03T-OWL-002` before starting the st
 
 ## Release
 
-Snapshot: `0.0.0-pre-alpha.1`. Release branch: `release/0.0.0-pre-alpha-1`. Annotated tag: `0.0.0-pre-alpha.1`.
+Snapshot: `0.0.0-pre-alpha.2`. Release branch: `release/0.0.0-pre-alpha-2`. Annotated tag: `0.0.0-pre-alpha.2`.

@@ -1,6 +1,6 @@
 {
   "name": "facts-cms",
-  "version": "0.0.0-pre-alpha.1",
+  "version": "0.0.0-pre-alpha.2",
   "private": true,
   "description": "FACTS: a composable meta-model workspace MVP",
   "main": "server.js",
