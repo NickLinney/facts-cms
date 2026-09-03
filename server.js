@@ -14,7 +14,7 @@ const normalizeSchema = (schema) => {
   const properties = Array.isArray(input.properties) ? input.properties.map((p, index) => ({
     name: String(p.name || '').trim(), label: String(p.label || p.name || '').trim(), value_kind: p.value_kind || 'text',
     cardinality: p.cardinality === 'many' ? 'many' : 'one', required: Boolean(p.required), description: String(p.description || ''),
-    target_kinds: Array.isArray(p.target_kinds) ? p.target_kinds : [], min: p.min === '' || p.min == null ? null : Number(p.min), max: p.max === '' || p.max == null ? null : Number(p.max), order: index
+    target_kinds: Array.isArray(p.target_kinds) ? p.target_kinds.map(String) : [], allow_duplicates: p.allow_duplicates === true, min: p.min === '' || p.min == null ? null : Number(p.min), max: p.max === '' || p.max == null ? null : Number(p.max), order: index
   })) : [];
   return {...input, properties};
 };
@@ -52,7 +52,7 @@ const validateReferences = async (schema, data) => {
     if(value[p.name]===undefined||value[p.name]===null||value[p.name]==='')continue;
     const ids=p.cardinality==='many'?value[p.name]:[value[p.name]];
     if(!Array.isArray(ids))return `Property must be a list: ${p.name}`;
-    if(new Set(ids).size!==ids.length)return `Duplicate entity reference: ${p.name}`;
+    if(!p.allow_duplicates&&new Set(ids).size!==ids.length)return `Duplicate entity reference: ${p.name}`;
     const rows=await pool.query('SELECT e.id,t.name FROM entity_records e JOIN type_definitions t ON t.id=e.type_id WHERE e.id=ANY($1::uuid[])',[ids]);
     if(rows.rowCount!==ids.length)return `Unknown entity reference in property: ${p.name}`;
     if(p.target_kinds.length&&rows.rows.some(r=>!p.target_kinds.includes(r.name)))return `Entity reference has an invalid target type: ${p.name}`;
@@ -85,4 +85,4 @@ app.post('/api/relationships', async (req,res) => { const {typeId,fromEntityId,t
 app.put('/api/relationships/:id', async (req,res) => { const {typeId,fromEntityId,toEntityId,data={}}=req.body||{}; try { const current=await pool.query('SELECT type_id,from_entity_id,to_entity_id FROM relationship_records WHERE id=$1',[req.params.id]); if(!current.rowCount)return res.status(404).json({error:'Relationship not found'}); const validation=await validateRelationship(typeId||current.rows[0].type_id,fromEntityId||current.rows[0].from_entity_id,toEntityId||current.rows[0].to_entity_id,data); if(validation)return res.status(400).json({error:validation}); const r=await pool.query('UPDATE relationship_records SET type_id=COALESCE($1,type_id),from_entity_id=COALESCE($2,from_entity_id),to_entity_id=COALESCE($3,to_entity_id),data=$4 WHERE id=$5 RETURNING *',[typeId,fromEntityId,toEntityId,json(data),req.params.id]); res.json(r.rows[0]); } catch(e) { res.status(500).json({error:e.message}); } });
 app.get('*', (_req,res) => res.sendFile(path.join(__dirname,'public','index.html')));
 if(require.main===module) app.listen(port,()=>console.log(`FACTS listening on http://localhost:${port}`));
-module.exports={app,pool};
+module.exports={app,pool,normalizeSchema,validateData,validateSchema};
