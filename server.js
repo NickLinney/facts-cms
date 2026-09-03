@@ -69,7 +69,7 @@ const validateRelationship = async (typeId, fromId, toId, data) => {
   const toType = await pool.query('SELECT t.kind,t.name FROM entity_records e JOIN type_definitions t ON t.id=e.type_id WHERE e.id=$1',[toId]);
   if (schema.source_kinds?.length && !schema.source_kinds.includes(fromType.rows[0].name)) return `Source must use one of: ${schema.source_kinds.join(', ')}`;
   if (schema.target_kinds?.length && !schema.target_kinds.includes(toType.rows[0].name)) return `Target must use one of: ${schema.target_kinds.join(', ')}`;
-  return validateData(schema, data);
+  return validateData(schema, data) || await validateReferences(schema, data);
 };
 app.get('/api/health', async (_req,res) => { try { await pool.query('SELECT 1'); res.json({ok:true,version:'0.0.0-pre-alpha.1',run_id:runId}); } catch (e) { res.status(503).json({ok:false,error:e.message}); } });
 app.post('/api/reset', async (_req,res) => { if(process.env.NODE_ENV==='production')return res.status(403).json({error:'Workspace reset is disabled in production'}); const client=await pool.connect(); try { await client.query('BEGIN'); await client.query('TRUNCATE relationship_records,entity_records RESTART IDENTITY CASCADE'); await client.query("DELETE FROM type_definitions WHERE NOT ((kind='entity' AND name='Entity') OR (kind='relationship' AND name='Relationship') OR (kind='view' AND name='View') OR (kind='presentation' AND name='Presentation'))"); await client.query('COMMIT'); res.json({ok:true,run_id:runId}); } catch(e) { await client.query('ROLLBACK'); res.status(500).json({error:e.message}); } finally { client.release(); } });
