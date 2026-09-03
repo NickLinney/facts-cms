@@ -63,9 +63,9 @@ const validateRelationship = async (typeId, fromId, toId, data) => {
   const type = await pool.query('SELECT kind,schema FROM type_definitions WHERE id=$1',[typeId]);
   if (!type.rowCount || type.rows[0].kind !== 'relationship') return 'Relationship type not found';
   const schema = normalizeSchema(type.rows[0].schema);
-  const endpoints = await pool.query('SELECT id,type_id FROM entity_records WHERE id = ANY($1::uuid[])',[ [fromId,toId] ]);
+  const endpoints = await pool.query('SELECT id,type_id FROM entity_records WHERE id = ANY($1::uuid[])',[fromId,toId]);
   if (endpoints.rowCount !== 2) return 'Both relationship endpoints must exist';
-  const entityTypes = await pool.query('SELECT id,kind,name FROM type_definitions WHERE id IN (SELECT type_id FROM entity_records WHERE id = ANY($1::uuid[]))',[ [fromId,toId] ]);
+  const entityTypes = await pool.query('SELECT id,kind,name FROM type_definitions WHERE id IN (SELECT type_id FROM entity_records WHERE id = ANY($1::uuid[]))',[fromId,toId]);
   const endpointKinds = new Map(entityTypes.rows.map(r=>[r.id,r.kind]));
   const fromType = await pool.query('SELECT t.kind,t.name FROM entity_records e JOIN type_definitions t ON t.id=e.type_id WHERE e.id=$1',[fromId]);
   const toType = await pool.query('SELECT t.kind,t.name FROM entity_records e JOIN type_definitions t ON t.id=e.type_id WHERE e.id=$1',[toId]);
