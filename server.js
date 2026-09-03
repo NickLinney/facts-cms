@@ -16,7 +16,7 @@ const normalizeSchema = (schema) => {
     cardinality: p.cardinality === 'many' ? 'many' : 'one', required: Boolean(p.required), description: String(p.description || ''),
     target_kinds: Array.isArray(p.target_kinds) ? p.target_kinds.map(String) : [], allow_duplicates: p.allow_duplicates === true, min: p.min === '' || p.min == null ? null : Number(p.min), max: p.max === '' || p.max == null ? null : Number(p.max), order: index
   })) : [];
-  return {...input, properties};
+  return {...input, directionality: input.directionality === 'undirected' ? 'undirected' : 'directed', properties};
 };
 const validateSchema = (schema) => {
   const normalized = normalizeSchema(schema); const names = new Set();
