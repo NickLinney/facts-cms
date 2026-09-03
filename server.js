@@ -3,6 +3,7 @@ const path = require('node:path');
 const { Pool } = require('pg');
 const app = express();
 const port = Number(process.env.PORT || 3000);
+const runId = process.env.FACTS_RUN_ID || 'local';
 const pool = new Pool({connectionString: process.env.DATABASE_URL || 'postgres://facts:facts@localhost:5432/facts'});
 app.use(express.json({limit:'1mb'}));
 app.use(express.static(path.join(__dirname,'public')));
@@ -72,7 +73,8 @@ const validateRelationship = async (typeId, fromId, toId, data) => {
   if (schema.target_kinds?.length && !schema.target_kinds.includes(toType.rows[0].name)) return `Target must use one of: ${schema.target_kinds.join(', ')}`;
   return validateData(schema, data);
 };
-app.get('/api/health', async (_req,res) => { try { await pool.query('SELECT 1'); res.json({ok:true,version:'0.0.0-pre-alpha.1'}); } catch (e) { res.status(503).json({ok:false,error:e.message}); } });
+app.get('/api/health', async (_req,res) => { try { await pool.query('SELECT 1'); res.json({ok:true,version:'0.0.0-pre-alpha.1',run_id:runId}); } catch (e) { res.status(503).json({ok:false,error:e.message}); } });
+app.post('/api/reset', async (_req,res) => { if(process.env.NODE_ENV==='production')return res.status(403).json({error:'Workspace reset is disabled in production'}); const client=await pool.connect(); try { await client.query('BEGIN'); await client.query('TRUNCATE relationship_records,entity_records RESTART IDENTITY CASCADE'); await client.query("DELETE FROM type_definitions WHERE NOT ((kind='entity' AND name='Entity') OR (kind='relationship' AND name='Relationship') OR (kind='view' AND name='View') OR (kind='presentation' AND name='Presentation'))"); await client.query('COMMIT'); res.json({ok:true,run_id:runId}); } catch(e) { await client.query('ROLLBACK'); res.status(500).json({error:e.message}); } finally { client.release(); } });
 app.get('/api/types', async (req,res) => { try { const p=req.query.kind?[req.query.kind]:[]; const r=await pool.query(`SELECT * FROM type_definitions ${p.length?'WHERE kind=$1':''} ORDER BY kind,name`,p); res.json(r.rows); } catch(e) { res.status(500).json({error:e.message}); } });
 app.post('/api/types', async (req,res) => { const {kind,name,description='',schema={}}=req.body||{}; if(!['entity','relationship','view','presentation'].includes(kind)||!name?.trim()) return res.status(400).json({error:'kind and name are required'}); const normalized=normalizeSchema(schema); const schemaError=validateSchema(normalized); if(schemaError)return res.status(400).json({error:schemaError}); try { const r=await pool.query('INSERT INTO type_definitions (kind,name,description,schema) VALUES ($1,$2,$3,$4) RETURNING *',[kind,name.trim(),description,normalized]); res.status(201).json(r.rows[0]); } catch(e) { res.status(e.code==='23505'?409:500).json({error:e.message}); } });
 app.put('/api/types/:id', async (req,res) => { const {name,description='',schema={}}=req.body||{}; const normalized=normalizeSchema(schema); const schemaError=validateSchema(normalized); if(schemaError)return res.status(400).json({error:schemaError}); try { const r=await pool.query('UPDATE type_definitions SET name=COALESCE($1,name),description=$2,schema=$3 WHERE id=$4 RETURNING *',[name?.trim()||null,description,normalized,req.params.id]); if(!r.rowCount)return res.status(404).json({error:'Type not found'}); res.json(r.rows[0]); } catch(e) { res.status(e.code==='23505'?409:500).json({error:e.message}); } });
