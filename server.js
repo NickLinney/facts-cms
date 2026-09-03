@@ -65,7 +65,6 @@ const validateRelationship = async (typeId, fromId, toId, data) => {
   const schema = normalizeSchema(type.rows[0].schema);
   const endpoints = await pool.query('SELECT id,type_id FROM entity_records WHERE id = ANY($1::uuid[])',[[fromId,toId]]);
   if (endpoints.rowCount !== 2) return 'Both relationship endpoints must exist';
-  const endpointKinds = new Map(entityTypes.rows.map(r=>[r.id,r.kind]));
   const fromType = await pool.query('SELECT t.kind,t.name FROM entity_records e JOIN type_definitions t ON t.id=e.type_id WHERE e.id=$1',[fromId]);
   const toType = await pool.query('SELECT t.kind,t.name FROM entity_records e JOIN type_definitions t ON t.id=e.type_id WHERE e.id=$1',[toId]);
   if (schema.source_kinds?.length && !schema.source_kinds.includes(fromType.rows[0].name)) return `Source must use one of: ${schema.source_kinds.join(', ')}`;
