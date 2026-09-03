@@ -19,6 +19,7 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: postgres://facts:facts@db:5432/facts
+      FACTS_RUN_ID: ${FACTS_RUN_ID:-local}
     ports: ["3000:3000"]
     depends_on:
       db: {condition: service_healthy}
