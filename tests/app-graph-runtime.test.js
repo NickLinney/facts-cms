@@ -14,7 +14,10 @@ test('structured graph output maps only directed relationships to arrows', () =>
   assert.match(appSource, /r\.directionality==='directed'\?'→':'—'/);
   assert.match(appSource, /data-graph-node/);
   assert.match(appSource, /data-graph-edge/);
-  assert.match(appSource, /class="graph-edge-control" tabindex="0"/);
+  assert.match(appSource, /class="graph-edge-control" tabindex="0" role="button" aria-pressed="false"/);
+  assert.match(appSource, /class="graph-node" tabindex="0" role="button" aria-pressed="false"/);
+  assert.doesNotMatch(appSource, /class="graph-edge-control"[^>]*role="img"/);
+  assert.doesNotMatch(appSource, /class="graph-node"[^>]*role="img"/);
   assert.match(appSource, /No data-quality warnings/);
   assert.match(appSource, /structured-panel \[data-graph-edge=/);
   assert.match(appSource, /density envelope exceeded/);
@@ -38,6 +41,10 @@ test('structured graph output maps only directed relationships to arrows', () =>
   assert.match(appSource, /action:\$\{activeAction\}:\$\{activeItemKind\}/);
   assert.doesNotMatch(appSource, /Source ref \$\{esc\(graphText\(item\.id\)\.slice/);
   assert.match(appSource, /state\.graphSourceRecord=null;renderGraph\(\)/);
+  assert.match(appSource, /event\.key!==['"]Escape['"]/);
+  assert.match(appSource, /function clearGraphInteraction\(\)/);
+  assert.match(appSource, /state\.graphSelection=null;state\.graphInspector=false;state\.graphSourceRecord=null/);
+  assert.match(appSource, /item\.getAttribute\('role'\)==='button'.*aria-pressed/);
   assert.match(appSource, /target\?\.focus\(\)/);
   assert.match(stylesSource, /prefers-reduced-motion:\s*reduce/);
 });
