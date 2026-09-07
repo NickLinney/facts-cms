@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="FACTS CMS Pre-Alpha-3 executive How it's going brief after Sprint 06.">
+  <title>FACTS CMS | How it's going — Post-Sprint 06</title>
+  <style>
+    :root {
+      --ink: #172235;
+      --muted: #627086;
+      --paper: #ffffff;
+      --canvas: #eef3f8;
+      --navy: #10243f;
+      --navy-2: #1b3c64;
+      --cyan: #58d7d1;
+      --cyan-dark: #087d83;
+      --lime: #b9e769;
+      --amber: #ffc857;
+      --red: #ff7d7d;
+      --line: #d8e1eb;
+      --shadow: 0 16px 42px rgba(16, 36, 63, .10);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--cyan-dark); font-weight: 700; }
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+    main { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      color: #fff;
+      background: linear-gradient(130deg, var(--navy) 0%, var(--navy-2) 66%, #176d75 100%);
+      border-radius: 26px;
+      padding: clamp(28px, 5vw, 58px);
+      box-shadow: var(--shadow);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      right: -120px;
+      top: -170px;
+      border: 52px solid rgba(88, 215, 209, .18);
+      border-radius: 50%;
+    }
+    .eyebrow { margin: 0 0 14px; color: var(--cyan); font-size: .78rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 760px; margin-bottom: 14px; font-size: clamp(2.35rem, 6vw, 4.8rem); line-height: .98; letter-spacing: -.055em; }
+    .hero-lede { max-width: 760px; margin-bottom: 26px; color: #dbe9f5; font-size: clamp(1.05rem, 2vw, 1.3rem); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 10px; position: relative; z-index: 1; }
+    .pill, .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+    .pill { color: #dffaf6; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); }
+    .pill strong { color: #fff; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 4px rgba(185,231,105,.15); font-size: 0; }
+    .section { margin-top: 22px; }
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; margin: 0 4px 12px; }
+    .section-head h2 { margin-bottom: 0; font-size: 1.45rem; letter-spacing: -.025em; }
+    .section-head p { margin-bottom: 0; color: var(--muted); font-size: .92rem; }
+    .grid { display: grid; gap: 16px; }
+    .metrics { grid-template-columns: repeat(4, 1fr); }
+    .two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 8px 26px rgba(16,36,63,.05);
+    }
+    .metric { min-height: 142px; display: flex; flex-direction: column; justify-content: space-between; }
+    .metric-label { color: var(--muted); font-size: .77rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .metric-value { margin: 8px 0 4px; color: var(--navy); font-size: clamp(1.45rem, 3vw, 2.25rem); font-weight: 900; letter-spacing: -.045em; line-height: 1; }
+    .metric-note { margin: 0; color: var(--muted); font-size: .88rem; }
+    .metric-note code { display: inline-block; max-width: 100%; color: var(--navy); font-size: .68rem; overflow-wrap: anywhere; }
+    .accent-cyan { border-top: 5px solid var(--cyan); }
+    .accent-lime { border-top: 5px solid var(--lime); }
+    .accent-amber { border-top: 5px solid var(--amber); }
+    .accent-red { border-top: 5px solid var(--red); }
+    .status { padding: 5px 9px; font-size: .68rem; }
+    .pass { color: #176a4b; background: #e0f6e7; }
+    .hold { color: #805b00; background: #fff1c9; }
+    .no-go { color: #9a3131; background: #ffe2e2; }
+    .blue { color: #23588b; background: #e1efff; }
+    .card h3 { margin-bottom: 8px; font-size: 1.05rem; }
+    .card p:last-child { margin-bottom: 0; }
+    .big-callout { display: grid; grid-template-columns: 1.2fr .8fr; gap: 22px; align-items: center; }
+    .big-callout h2 { margin-bottom: 10px; font-size: clamp(1.5rem, 3vw, 2.25rem); line-height: 1.08; letter-spacing: -.04em; }
+    .callout-quote { margin: 0; padding: 18px; color: #dffaf6; background: var(--navy); border-radius: 14px; font-size: 1.05rem; font-weight: 700; }
+    .callout-quote span { display: block; margin-top: 8px; color: var(--cyan); font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .list li { position: relative; padding-left: 27px; }
+    .list li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--cyan-dark); font-weight: 900; }
+    .list.remaining li::before { content: "→"; color: #a16d00; }
+    .list.risk li::before { content: "!"; color: #b34c4c; }
+    .tracker { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    th, td { padding: 13px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { color: var(--muted); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { font-weight: 800; white-space: nowrap; }
+    .progress-rail { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; margin-top: 18px; }
+    .rail-step { position: relative; min-height: 72px; padding: 12px 8px 8px; color: #fff; background: #b7c2cf; border-radius: 9px; text-align: center; font-size: .72rem; font-weight: 800; }
+    .rail-step::after { content: ""; position: absolute; top: 50%; right: -7px; width: 8px; height: 2px; background: #b7c2cf; }
+    .rail-step:last-child::after { display: none; }
+    .rail-step.done { background: var(--cyan-dark); }
+    .rail-step.done::after { background: var(--cyan-dark); }
+    .rail-step.hold { color: #624a00; background: #f6d77a; }
+    .rail-step.hold::after { background: #f6d77a; }
+    .rail-step small { display: block; margin-top: 5px; font-weight: 600; opacity: .88; }
+    .decision { display: flex; align-items: flex-start; gap: 12px; }
+    .decision-icon { flex: 0 0 auto; width: 32px; height: 32px; display: grid; place-items: center; color: var(--navy); background: var(--lime); border-radius: 10px; font-weight: 900; }
+    .decision h3 { margin-bottom: 3px; }
+    .decision p { margin-bottom: 0; color: var(--muted); font-size: .92rem; }
+    .footer { margin: 24px 4px 8px; color: var(--muted); font-size: .82rem; }
+    .footer strong { color: var(--ink); }
+    .source-list { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 10px 0 0; padding: 0; list-style: none; }
+    .source-list li { font-size: .83rem; }
+    @media (max-width: 900px) {
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .big-callout, .two { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      main { padding: 12px; }
+      .hero { border-radius: 19px; padding: 28px 22px; }
+      .metrics, .three { grid-template-columns: 1fr; }
+      .progress-rail { grid-template-columns: repeat(7, minmax(76px, 1fr)); overflow-x: auto; padding-bottom: 6px; }
+      .rail-step::after { display: none; }
+      .card { padding: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <p class="eyebrow">FACTS CMS · Pre-Alpha-3 · Executive brief</p>
+      <h1>How it’s going</h1>
+      <p class="hero-lede">Sprint 06 closed a bounded Graph View hardening and governance loop. The team now has an accepted, measured, read-only slice with G0 and G1 passed for that bounded scope. The next gates remain deliberately separate.</p>
+      <div class="hero-meta" aria-label="Current overall status">
+        <span class="pill"><span class="dot" aria-hidden="true">•</span><strong>Bounded Sprint 06 outcome accepted</strong></span>
+        <span class="pill">As of 07 Sep 2026</span>
+        <span class="pill">Release: <strong>No-Go</strong></span>
+      </div>
+    </header>
+
+    <section class="section" aria-labelledby="headline-status">
+      <div class="section-head">
+        <h2 id="headline-status">The headline</h2>
+        <p>One screen, four signals.</p>
+      </div>
+      <div class="grid metrics">
+        <article class="card metric accent-cyan">
+          <span class="metric-label">Implementation</span>
+          <strong class="metric-value">64a201ea</strong>
+          <p class="metric-note"><code>64a201ea12600a93443aa1e30415c3d3af6cf817</code><br>Clean exact candidate · bounded F-01/F-02</p>
+        </article>
+        <article class="card metric accent-lime">
+          <span class="metric-label">Evidence</span>
+          <strong class="metric-value">17 / 17</strong>
+          <p class="metric-note">Fresh local + Docker QA; specialist acceptance</p>
+        </article>
+        <article class="card metric accent-cyan">
+          <span class="metric-label">Governance</span>
+          <strong class="metric-value">G0 + G1</strong>
+          <p class="metric-note"><span class="status pass">Passed</span> bounded Sprint 06 scope</p>
+        </article>
+        <article class="card metric accent-red">
+          <span class="metric-label">Release</span>
+          <strong class="metric-value">No-Go</strong>
+          <p class="metric-note">G2–G6 remain separately controlled</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section card big-callout" aria-labelledby="ceo-readout">
+      <div>
+        <p class="eyebrow" style="color: var(--cyan-dark);">CEO readout</p>
+        <h2>Confidence is up. Exposure is still controlled.</h2>
+        <p>Sprint 06 moved the program from “can we trust the behavior?” to “we have bounded, repeatable evidence for the behavior.” It did not turn a bounded acceptance into release permission.</p>
+      </div>
+      <blockquote class="callout-quote">“The product slice is accepted; the release decision is still a separate decision.”<span>Operating posture</span></blockquote>
+    </section>
+
+    <section class="section" aria-labelledby="sprint-outcome">
+      <div class="section-head">
+        <h2 id="sprint-outcome">What Sprint 06 delivered</h2>
+        <p>Visible product value, backed by evidence.</p>
+      </div>
+      <div class="grid two">
+        <article class="card">
+          <h3>What shipped in the bounded slice</h3>
+          <ul class="list">
+            <li>Source-return and focus restoration for node and relationship journeys.</li>
+            <li>Responsive Graph View reflow at default and narrow <strong>390×844</strong> viewports.</li>
+            <li>Keyboard parity, Escape/Reset recovery, ARIA status, reduced motion, and structured fallback.</li>
+            <li>Independent filters, bounded warnings, density fallback, and no-mutation behavior.</li>
+            <li>Exact-SHA lineage controls and a reproducible 17/17 local/Docker test record.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>The discovery proof point</h3>
+          <p>The normalized OWL-003 replay produced <strong>48 eligible/visible nodes</strong> and <strong>25 eligible/visible edges</strong>, with zero omissions or warnings. The density-degraded path measured 251 nodes, exposed bounded structured fallback, and recovered to the 4-node baseline.</p>
+          <p><span class="status pass">Read-only</span> Before/after canonical data hashes matched; no write request was used for the discovery replay.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section card" aria-labelledby="cadence-closure">
+      <div class="section-head">
+        <h2 id="cadence-closure">Cadence closure</h2>
+        <p>Delivery and governance both have a clean stopping point.</p>
+      </div>
+      <div class="grid two">
+        <div><span class="status pass">Sprint Review complete</span><p style="margin: 10px 0 0;">The CIO accepted the bounded Sprint 06 outcome after exact-SHA implementation, QA, and specialist evidence review.</p></div>
+        <div><span class="status pass">Retrospective complete</span><p style="margin: 10px 0 0;">The team captured candidate-churn, viewport-coverage, and evidence-supersession improvements for the next gate cycle.</p></div>
+      </div>
+    </section>
+
+    <section class="section card" aria-labelledby="milestones">
+      <div class="section-head">
+        <h2 id="milestones">Milestone tracker</h2>
+        <p>Passed means bounded and evidence-backed—not a release shortcut.</p>
+      </div>
+      <div class="progress-rail" aria-label="Milestone progress from G0 to G6">
+        <div class="rail-step done">G0<small>Passed</small></div>
+        <div class="rail-step done">G1<small>Passed</small></div>
+        <div class="rail-step hold">G2<small>Hold</small></div>
+        <div class="rail-step hold">G3<small>Hold</small></div>
+        <div class="rail-step hold">G4<small>Hold</small></div>
+        <div class="rail-step hold">G5<small>Release hold</small></div>
+        <div class="rail-step hold">G6<small>No-Go</small></div>
+      </div>
+      <div class="tracker" style="margin-top: 16px;">
+        <table>
+          <thead><tr><th>Milestone / gate</th><th>Current state</th><th>Executive meaning</th></tr></thead>
+          <tbody>
+            <tr><td>M0 / G0</td><td><span class="status pass">Passed</span></td><td>Corrected authority, scope, evidence, and emergency-path controls accepted for Sprint 06.</td></tr>
+            <tr><td>M1 / G1</td><td><span class="status pass">Passed</span></td><td>Bounded discovery contract measured and explicitly accepted by Director and CIO.</td></tr>
+            <tr><td>M2 / G2</td><td><span class="status hold">Not started / Hold</span></td><td>Thin vertical slice requires its own entry evidence and continuation decision.</td></tr>
+            <tr><td>M3 / G3</td><td><span class="status hold">Not started / Hold</span></td><td>Full committed capability is not yet accepted.</td></tr>
+            <tr><td>M4 / G4</td><td><span class="status hold">Not started / Hold</span></td><td>Integrated verification and hardening remain future work.</td></tr>
+            <tr><td>M5 / G5</td><td><span class="status no-go">Release hold</span></td><td>Version, lineage, clean-container, health, rollback, and readiness package are not a current release decision.</td></tr>
+            <tr><td>M6 / G6</td><td><span class="status no-go">No-Go</span></td><td>No release ceremony, publication, or promotion is authorized.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="remaining">
+      <div class="section-head">
+        <h2 id="remaining">What remains</h2>
+        <p>Focus for the next decision cycle.</p>
+      </div>
+      <div class="grid three">
+        <article class="card">
+          <h3>Next gate: G2</h3>
+          <ul class="list remaining">
+            <li>Re-baseline the thin vertical slice after G1.</li>
+            <li>Confirm representative data, no-mutation proof, and entry authority.</li>
+            <li>Record Continue, Pivot, Reduce, or Stop.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Release discipline</h3>
+          <ul class="list remaining">
+            <li>Keep Pre-Alpha-2 as the current release baseline.</li>
+            <li>Do not merge, tag, push, deploy, publish, or promote.</li>
+            <li>Revisit G5/G6 only after G4 evidence exists.</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Product guardrails</h3>
+          <ul class="list remaining">
+            <li>Preserve read-only Graph View boundaries.</li>
+            <li>Keep mutation, graph analytics, derived edges, and unrelated cleanup out of scope.</li>
+            <li>Reopen evidence if SHA, fixture, contract, or scope changes.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="risks-decisions">
+      <div class="section-head">
+        <h2 id="risks-decisions">Risks and decisions</h2>
+        <p>Nothing hidden behind “green.”</p>
+      </div>
+      <div class="grid two">
+        <article class="card">
+          <h3>Decisions made</h3>
+          <div class="decision"><span class="decision-icon">✓</span><div><h3>Bounded scope accepted</h3><p>CIO accepted the PM/UX contract; Director accepted the exact implementation; QA and Security/Accessibility accepted the same SHA.</p></div></div>
+          <div class="decision" style="margin-top: 15px;"><span class="decision-icon">✓</span><div><h3>G0 and G1 passed for the bounded scope</h3><p>Explicit governance and discovery decisions are recorded; no downstream gate is implied.</p></div></div>
+        </article>
+        <article class="card">
+          <h3>Risks still managed</h3>
+          <ul class="list risk">
+            <li>Gate progression can outpace evidence if the next candidate is not locked to one clean SHA.</li>
+            <li>Release risk remains intentionally high-control: G5/G6 are not reached and the release is No-Go.</li>
+            <li>Future scope pressure must not pull mutation, schema, analytics, or unrelated authoring work into the Graph View lane.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="section card" aria-labelledby="next-actions">
+      <div class="section-head">
+        <h2 id="next-actions">Next actions</h2>
+        <p>Clear owners, clear boundary.</p>
+      </div>
+      <div class="tracker">
+        <table>
+          <thead><tr><th>Owner</th><th>Action</th><th>Done when</th></tr></thead>
+          <tbody>
+            <tr><td>Scrum Master</td><td>Roll the accepted G0/G1 baseline into G2 readiness and maintain exact-SHA decision lineage.</td><td>G2 entry packet and continuation decision are recorded.</td></tr>
+            <tr><td>Product Owner / CIO</td><td>Confirm the product continuation choice at the next bounded gate.</td><td>Continue, Pivot, Reduce, or Stop is explicit.</td></tr>
+            <tr><td>Director + Senior Developer</td><td>Reconfirm technical scope, rollback, and evidence obligations for any next candidate.</td><td>New authorization names scope, branch, environment, and evidence.</td></tr>
+            <tr><td>QA + Security/Accessibility</td><td>Carry forward fixture, replay, responsive, accessibility, and no-mutation protocols.</td><td>Independent evidence names one clean candidate SHA.</td></tr>
+            <tr><td>Release Manager</td><td>Preserve the no-promotion boundary and prepare future G5/G6 readiness checks.</td><td>No-Go remains explicit until a later accountable decision changes it.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p><strong>Bottom line:</strong> Sprint 06 delivered a trustworthy bounded Graph View increment and passed G0/G1 for that scope. The team is ready to make the next controlled product decision; it is not ready to release.</p>
+      <p>Prepared 2026-09-07 from the authoritative Pre-Alpha-3 milestone register and Sprint 06 closure, candidate, QA, discovery, governance, and release-control records. This report is self-contained HTML5 with embedded CSS and no external assets.</p>
+      <ul class="source-list" aria-label="Source records">
+        <li><a href="Releases/Pre-Alpha-3/01-PROJECT-MILESTONE-REGISTER.md">Milestone register</a></li>
+        <li><a href="Releases/Pre-Alpha-3/Sprints/Sprint-06/Deliverables/38-S06-FINAL-CLOSURE-G0-G1-64A201.md">Sprint 06 closure</a></li>
+        <li><a href="Releases/Pre-Alpha-3/Sprints/Sprint-06/Deliverables/24-S06-FINAL-CANDIDATE-LOCK-64A201.md">Exact candidate lock</a></li>
+        <li><a href="Releases/Pre-Alpha-3/Sprints/Sprint-06/Deliverables/32-S06-MEASURED-G1-DISCOVERY-PACKET.md">Measured G1 packet</a></li>
+        <li><a href="Releases/Pre-Alpha-3/Sprints/Sprint-06/Deliverables/27-S06-RELEASE-MANAGER-FINAL-DISPOSITION-64A201.md">Release disposition</a></li>
+      </ul>
+    </footer>
+  </main>
+</body>
+</html>
