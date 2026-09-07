@@ -153,6 +153,15 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
   const sortFacets = facets => [...facets].sort((a, b) => compareText(a.name, b.name) || compareText(a.id, b.id));
   const canonicalNodes = sortNodes(eligibleNodes);
   const canonicalEdges = sortEdges(eligibleEdges);
+  const density = {
+    node_limit: DENSITY_LIMITS.nodes,
+    edge_limit: DENSITY_LIMITS.edges,
+    eligible_nodes: eligibleNodes.length,
+    eligible_edges: eligibleEdges.length,
+    exceeded_nodes: Math.max(0, eligibleNodes.length - DENSITY_LIMITS.nodes),
+    exceeded_edges: Math.max(0, eligibleEdges.length - DENSITY_LIMITS.edges),
+    within_bounds: eligibleNodes.length <= DENSITY_LIMITS.nodes && eligibleEdges.length <= DENSITY_LIMITS.edges
+  };
   const revision = fingerprint(canonicalNodes, canonicalEdges, {
     omitted_nodes: omittedNodes.length,
     omitted_edges: omittedEdges.length,
@@ -168,6 +177,7 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
       entity_types: sortFacets(normalizedNodeTypes).map(facet => facet.id),
       relationship_types: sortFacets(normalizedRelationshipTypes).map(facet => facet.id)
     },
+    density,
     counts: {
       eligible_nodes: eligibleNodes.length,
       eligible_edges: eligibleEdges.length,

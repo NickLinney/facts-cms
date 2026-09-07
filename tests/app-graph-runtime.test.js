@@ -14,6 +14,10 @@ test('structured graph output maps only directed relationships to arrows', () =>
   assert.match(appSource, /r\.directionality==='directed'\?'→':'—'/);
   assert.match(appSource, /data-graph-node/);
   assert.match(appSource, /data-graph-edge/);
+  assert.match(appSource, /class="graph-edge-control" tabindex="0"/);
+  assert.match(appSource, /No data-quality warnings/);
+  assert.match(appSource, /structured-panel \[data-graph-edge=/);
+  assert.match(appSource, /density envelope exceeded/);
   assert.match(appSource, /target\?\.focus\(\)/);
   assert.match(stylesSource, /prefers-reduced-motion:\s*reduce/);
 });

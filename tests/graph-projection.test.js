@@ -135,4 +135,8 @@ test('stale filters warn without exposing filter values and density stays explic
   const dense = projectGraph({nodes, edges: []});
   assert.equal(dense.counts.eligible_nodes, DENSITY_LIMITS.nodes + 1);
   assert.ok(dense.warnings.some(item => item.code === 'density-limit'));
+  assert.equal(dense.density.within_bounds, false);
+  assert.equal(dense.density.exceeded_nodes, 1);
+  assert.equal(dense.density.node_limit, DENSITY_LIMITS.nodes);
+  assert.equal(dense.density.edge_limit, DENSITY_LIMITS.edges);
 });
