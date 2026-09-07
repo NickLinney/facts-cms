@@ -124,6 +124,7 @@ test('stale filters warn without exposing filter values and density stays explic
   assert.equal(stale.counts.visible_nodes, 0);
   assert.deepEqual(stale.warnings.map(item => item.code).sort(), ['unknown-entity-filter', 'unknown-relationship-filter']);
   assert.ok(stale.warnings.every(item => !item.message.includes('stale-')));
+  assert.notEqual(stale.revision, projectGraph({nodes: populatedGraphFixture.nodes, edges: populatedGraphFixture.edges}).revision);
 
   const nodes = Array.from({length: DENSITY_LIMITS.nodes + 1}, (_, index) => ({
     id: `00000000-0000-4000-8000-${(10000 + index).toString(16).padStart(12, '0')}`,

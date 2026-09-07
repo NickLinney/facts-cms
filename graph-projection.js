@@ -131,6 +131,16 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
   if (eligibleNodes.length > DENSITY_LIMITS.nodes || eligibleEdges.length > DENSITY_LIMITS.edges) {
     warnings.push(warning('density-limit', 'This projection exceeds the provisional interactive density envelope; narrow the filters before visual exploration.', null));
   }
+  if (selectedEntityTypes) {
+    for (const typeId of selectedEntityTypes) {
+      if (!entityFacetIds.has(typeId)) warnings.push(warning('unknown-entity-filter', 'An Entity filter is no longer available in this projection and was ignored.', null));
+    }
+  }
+  if (selectedRelationshipTypes) {
+    for (const typeId of selectedRelationshipTypes) {
+      if (!relationshipFacetIds.has(typeId)) warnings.push(warning('unknown-relationship-filter', 'A Relationship filter is no longer available in this projection and was ignored.', null));
+    }
+  }
   const visibleNodes = eligibleNodes.filter(node => selected(selectedEntityTypes, node.type_id));
   const visibleNodeIds = new Set(visibleNodes.map(node => node.id));
   const hiddenNodesByEntityFilter = eligibleNodes.length - visibleNodes.length;
@@ -148,16 +158,6 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
     omitted_edges: omittedEdges.length,
     warnings: warnings.map(({code, record_ref}) => ({code, ...(record_ref ? {record_ref} : {})}))
   });
-  if (selectedEntityTypes) {
-    for (const typeId of selectedEntityTypes) {
-      if (!entityFacetIds.has(typeId)) warnings.push(warning('unknown-entity-filter', 'An Entity filter is no longer available in this projection and was ignored.', null));
-    }
-  }
-  if (selectedRelationshipTypes) {
-    for (const typeId of selectedRelationshipTypes) {
-      if (!relationshipFacetIds.has(typeId)) warnings.push(warning('unknown-relationship-filter', 'A Relationship filter is no longer available in this projection and was ignored.', null));
-    }
-  }
 
   return {
     schema_version: 1,
