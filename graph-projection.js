@@ -8,7 +8,7 @@ const text = value => typeof value === 'string' ? value.trim() : '';
 const warning = (code, message, recordId) => ({
   code,
   message,
-  ...(recordId ? {record_id: recordId} : {})
+  ...(recordId && isUuid(recordId) ? {record_id: recordId} : {})
 });
 
 const compareText = (left, right) => String(left ?? '').localeCompare(String(right ?? ''), 'en', {numeric: true});
@@ -31,11 +31,11 @@ const normalizeFilter = filter => {
 };
 
 const selected = (filter, typeId) => filter === null || filter.has(typeId);
+const DENSITY_LIMITS = Object.freeze({nodes: 250, edges: 500});
 
 const fingerprint = (nodes, edges) => crypto.createHash('sha256')
   .update(JSON.stringify({nodes, edges}))
   .digest('hex')
-  .slice(0, 16);
 
 /**
  * Project database-shaped rows into the renderer-neutral Graph View contract.
@@ -69,6 +69,16 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
     const name = rawName || `Unnamed ${typeName}`;
     if (!rawName) warnings.push(warning('missing-node-name', 'Entity row uses a bounded placeholder because its display name is missing.', id));
     eligibleNodes.push({id, name, type_name: typeName, type_id: typeId});
+  }
+
+  const labelCounts = new Map();
+  for (const node of eligibleNodes) {
+    const key = `${node.type_id}\u0000${node.name}`;
+    labelCounts.set(key, (labelCounts.get(key) || 0) + 1);
+  }
+  for (const node of eligibleNodes) {
+    const key = `${node.type_id}\u0000${node.name}`;
+    node.label = labelCounts.get(key) > 1 ? `${node.name} · …${node.id.slice(-4)}` : node.name;
   }
 
   const nodeById = new Map(eligibleNodes.map(node => [node.id, node]));
@@ -113,6 +123,21 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
 
   const selectedEntityTypes = normalizeFilter(entityFilter);
   const selectedRelationshipTypes = normalizeFilter(relationshipFilter);
+  const entityFacetIds = new Set(eligibleNodes.map(node => node.type_id));
+  const relationshipFacetIds = new Set(eligibleEdges.map(edge => edge.type_id));
+  if (selectedEntityTypes) {
+    for (const typeId of selectedEntityTypes) {
+      if (!entityFacetIds.has(typeId)) warnings.push(warning('unknown-entity-filter', 'An Entity filter is no longer available in this projection and was ignored.', null));
+    }
+  }
+  if (selectedRelationshipTypes) {
+    for (const typeId of selectedRelationshipTypes) {
+      if (!relationshipFacetIds.has(typeId)) warnings.push(warning('unknown-relationship-filter', 'A Relationship filter is no longer available in this projection and was ignored.', null));
+    }
+  }
+  if (eligibleNodes.length > DENSITY_LIMITS.nodes || eligibleEdges.length > DENSITY_LIMITS.edges) {
+    warnings.push(warning('density-limit', 'This projection exceeds the provisional interactive density envelope; narrow the filters before visual exploration.', null));
+  }
   const visibleNodes = eligibleNodes.filter(node => selected(selectedEntityTypes, node.type_id));
   const visibleNodeIds = new Set(visibleNodes.map(node => node.id));
   const hiddenNodesByEntityFilter = eligibleNodes.length - visibleNodes.length;
@@ -154,4 +179,4 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
   };
 };
 
-module.exports = {projectGraph, normalizeFilter, isUuid};
+module.exports = {projectGraph, normalizeFilter, isUuid, DENSITY_LIMITS};

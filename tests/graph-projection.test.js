@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const {projectGraph} = require('../graph-projection');
+const {projectGraph, DENSITY_LIMITS} = require('../graph-projection');
 const {ids, populatedGraphFixture, malformedProjectionFixture} = require('./fixtures/graph-fixtures');
 
 const typeFacets = [
@@ -27,8 +27,9 @@ test('populated fixture is deterministic and keeps directed/undirected semantics
   const first = project();
   const second = project();
   assert.deepEqual(first, second);
-  assert.equal(first.revision, '48a74fec35cd950a');
+  assert.equal(first.revision, '4ca0889e552623a86970102ad8471f50f3937146f04811ec415c2c4c628c17cf');
   assert.deepEqual(first.nodes.map(node => node.id), [ids.entities.etienne, ids.entities.margot, ids.entities.feather, ids.entities.inn]);
+  assert.deepEqual(first.nodes.map(node => node.label), first.nodes.map(node => node.name));
   assert.deepEqual(first.edges.map(edge => edge.directionality), ['undirected', 'directed', 'directed']);
   assert.deepEqual(first.counts, {
     eligible_nodes: 4,
@@ -90,6 +91,7 @@ test('malformed and unavailable rows are omitted with bounded warnings', () => {
   ].sort());
   assert.ok(result.warnings.find(item => item.code === 'unknown-direction').message.includes('neutral'));
   assert.ok(result.warnings.every(item => !item.message.includes('not-a-uuid')));
+  assert.equal(result.warnings.find(item => item.code === 'malformed-edge').record_id, undefined);
 });
 
 test('malformed nodes do not create placeholder facts, while missing names use a warning placeholder', () => {
@@ -105,4 +107,28 @@ test('malformed nodes do not create placeholder facts, while missing names use a
   assert.equal(result.counts.eligible_nodes, 5);
   assert.equal(result.nodes.find(node => node.id.endsWith('1005')).name, 'Unnamed Location');
   assert.deepEqual(result.warnings.map(item => item.code).sort(), ['malformed-node', 'missing-node-name']);
+});
+
+test('duplicate labels receive deterministic short disambiguators', () => {
+  const duplicate = {...populatedGraphFixture.nodes[0], id: '00000000-0000-4000-8000-000000001005'};
+  const result = projectGraph({nodes: [...populatedGraphFixture.nodes, duplicate], edges: populatedGraphFixture.edges});
+  const labels = result.nodes.filter(node => node.type_id === ids.types.character).map(node => node.label);
+  assert.deepEqual(labels, ['Étienne', 'Margot · …1001', 'Margot · …1005']);
+});
+
+test('stale filters warn without exposing filter values and density stays explicit', () => {
+  const stale = projectGraph({nodes: populatedGraphFixture.nodes, edges: populatedGraphFixture.edges, entityFilter: ['stale-entity'], relationshipFilter: ['stale-relationship']});
+  assert.equal(stale.counts.visible_nodes, 0);
+  assert.deepEqual(stale.warnings.map(item => item.code).sort(), ['unknown-entity-filter', 'unknown-relationship-filter']);
+  assert.ok(stale.warnings.every(item => !item.message.includes('stale-')));
+
+  const nodes = Array.from({length: DENSITY_LIMITS.nodes + 1}, (_, index) => ({
+    id: `00000000-0000-4000-8000-${(10000 + index).toString(16).padStart(12, '0')}`,
+    name: `Node ${index}`,
+    type_id: ids.types.character,
+    type_name: 'Character'
+  }));
+  const dense = projectGraph({nodes, edges: []});
+  assert.equal(dense.counts.eligible_nodes, DENSITY_LIMITS.nodes + 1);
+  assert.ok(dense.warnings.some(item => item.code === 'density-limit'));
 });
