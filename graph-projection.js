@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_LABEL_LENGTH = 120;
 const MAX_WARNING_LENGTH = 240;
+const MAX_WARNING_COUNT = 64;
 
 const isUuid = value => typeof value === 'string' && UUID_PATTERN.test(value);
 const text = value => typeof value === 'string' ? value.trim() : '';
@@ -181,6 +182,7 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
     omitted_edges: omittedEdges.length,
     warnings: warnings.map(({code, record_ref}) => ({code, ...(record_ref ? {record_ref} : {})}))
   });
+  const warningOverflow = Math.max(0, warnings.length - MAX_WARNING_COUNT);
 
   return {
     schema_version: 1,
@@ -205,9 +207,11 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
       omitted_nodes: omittedNodes.length,
       omitted_edges: omittedEdges.length,
       warnings: warnings.length,
-      warning_count: warnings.length
+      warning_count: warnings.length,
+      warning_overflow: warningOverflow
     },
-    warnings
+    warnings: warnings.slice(0, MAX_WARNING_COUNT),
+    warning_overflow: warningOverflow
   };
 };
 

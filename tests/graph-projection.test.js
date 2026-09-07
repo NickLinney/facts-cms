@@ -44,7 +44,8 @@ test('populated fixture is deterministic and keeps directed/undirected semantics
     omitted_nodes: 0,
     omitted_edges: 0,
     warnings: 0,
-    warning_count: 0
+    warning_count: 0,
+    warning_overflow: 0
   });
 });
 
@@ -153,4 +154,12 @@ test('warning and label output remain hard bounded for hostile display text', ()
   assert.ok(result.warnings.some(item => item.code === 'bounded-label'));
   assert.ok(result.warnings.every(item => item.message.length <= 240));
   assert.ok(result.warnings.every(item => item.code.length <= 48));
+});
+
+test('warning cardinality is bounded while overflow remains explicit', () => {
+  const result = projectGraph({nodes: Array.from({length: 70}, (_, index) => ({id: `invalid-${index}`}))});
+  assert.equal(result.warnings.length, 64);
+  assert.equal(result.warning_overflow, 6);
+  assert.equal(result.counts.warning_count, 70);
+  assert.equal(result.counts.warning_overflow, 6);
 });

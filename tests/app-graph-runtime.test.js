@@ -30,6 +30,14 @@ test('structured graph output maps only directed relationships to arrows', () =>
   assert.match(appSource, /graph-source-record/);
   assert.match(appSource, /state\.graphSourceRecord=\{kind,id\}/);
   assert.match(appSource, /state\.graphSelection=null;state\.graphInspector=false/);
+  assert.match(appSource, /aria-pressed/);
+  assert.match(appSource, /graph-item-selected/);
+  assert.match(appSource, /Source record identity masked/);
+  assert.match(appSource, /Additional warnings omitted/);
+  assert.match(appSource, /structuredNodeOverflow\|\|structuredEdgeOverflow/);
+  assert.match(appSource, /action:\$\{activeAction\}:\$\{activeItemKind\}/);
+  assert.doesNotMatch(appSource, /Source ref \$\{esc\(graphText\(item\.id\)\.slice/);
+  assert.match(appSource, /state\.graphSourceRecord=null;renderGraph\(\)/);
   assert.match(appSource, /target\?\.focus\(\)/);
   assert.match(stylesSource, /prefers-reduced-motion:\s*reduce/);
 });
