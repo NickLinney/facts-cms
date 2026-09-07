@@ -8,6 +8,17 @@ const stylesSource = fs.readFileSync(require.resolve('../public/styles.css'), 'u
 test('effective browser loader consumes the canonical graph response exactly once', () => {
   assert.equal((appSource.match(/async function load\(/g) || []).length, 1);
   assert.match(appSource, /state\.graph\]=await Promise\.all\(\[api\('\/api\/types'\),api\('\/api\/entities'\),api\('\/api\/relationships'\),api\('\/api\/graph'\)\]\)/);
+  assert.match(appSource, /load\(\)\.catch\(err=>toast\(err\.message\)\);\s*$/);
+});
+
+test('effective client declarations are unique and source return restores graph context', () => {
+  const declarations = [...appSource.matchAll(/^function ([A-Za-z0-9_]+)\(/gm)].map(match => match[1]);
+  const duplicates = declarations.filter((name, index) => declarations.indexOf(name) !== index);
+  assert.deepEqual(duplicates, []);
+  assert.match(appSource, /state\.graphSelection=\{kind,id\};state\.graphInspector=true;state\.graphReturnFocus=\{kind,id\};state\.graphSourceRecord=\{kind,id\}/);
+  assert.match(appSource, /function restoreGraphReturnFocus\(\)/);
+  assert.match(appSource, /state\.graphSourceRecord=null;showSection\('graph'\);restoreGraphReturnFocus\(\)/);
+  assert.match(appSource, /state\.graphSourceRecord=null;state\.graphReturnFocus=null;renderGraph\(\)/);
 });
 
 test('structured graph output maps only directed relationships to arrows', () => {
@@ -40,7 +51,7 @@ test('structured graph output maps only directed relationships to arrows', () =>
   assert.match(appSource, /structuredNodeOverflow\|\|structuredEdgeOverflow/);
   assert.match(appSource, /action:\$\{activeAction\}:\$\{activeItemKind\}/);
   assert.doesNotMatch(appSource, /Source ref \$\{esc\(graphText\(item\.id\)\.slice/);
-  assert.match(appSource, /state\.graphSourceRecord=null;renderGraph\(\)/);
+  assert.match(appSource, /state\.graphSourceRecord=null;state\.graphReturnFocus=null;renderGraph\(\)/);
   assert.match(appSource, /event\.key!==['"]Escape['"]/);
   assert.match(appSource, /function clearGraphInteraction\(\)/);
   assert.match(appSource, /state\.graphSelection=null;state\.graphInspector=false;state\.graphSourceRecord=null/);
