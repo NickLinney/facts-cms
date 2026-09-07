@@ -4,11 +4,14 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 const isUuid = value => typeof value === 'string' && UUID_PATTERN.test(value);
 const text = value => typeof value === 'string' ? value.trim() : '';
+const safeRecordRef = recordId => isUuid(recordId)
+  ? `ref-${crypto.createHash('sha256').update(recordId).digest('hex').slice(0, 8)}`
+  : undefined;
 
 const warning = (code, message, recordId) => ({
   code,
   message,
-  ...(recordId && isUuid(recordId) ? {record_id: recordId} : {})
+  ...(safeRecordRef(recordId) ? {record_ref: safeRecordRef(recordId)} : {})
 });
 
 const compareText = (left, right) => String(left ?? '').localeCompare(String(right ?? ''), 'en', {numeric: true});
@@ -33,8 +36,8 @@ const normalizeFilter = filter => {
 const selected = (filter, typeId) => filter === null || filter.has(typeId);
 const DENSITY_LIMITS = Object.freeze({nodes: 250, edges: 500});
 
-const fingerprint = (nodes, edges) => crypto.createHash('sha256')
-  .update(JSON.stringify({nodes, edges}))
+const fingerprint = (nodes, edges, state) => crypto.createHash('sha256')
+  .update(JSON.stringify({nodes, edges, state}))
   .digest('hex')
 
 /**
@@ -125,16 +128,6 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
   const selectedRelationshipTypes = normalizeFilter(relationshipFilter);
   const entityFacetIds = new Set(eligibleNodes.map(node => node.type_id));
   const relationshipFacetIds = new Set(eligibleEdges.map(edge => edge.type_id));
-  if (selectedEntityTypes) {
-    for (const typeId of selectedEntityTypes) {
-      if (!entityFacetIds.has(typeId)) warnings.push(warning('unknown-entity-filter', 'An Entity filter is no longer available in this projection and was ignored.', null));
-    }
-  }
-  if (selectedRelationshipTypes) {
-    for (const typeId of selectedRelationshipTypes) {
-      if (!relationshipFacetIds.has(typeId)) warnings.push(warning('unknown-relationship-filter', 'A Relationship filter is no longer available in this projection and was ignored.', null));
-    }
-  }
   if (eligibleNodes.length > DENSITY_LIMITS.nodes || eligibleEdges.length > DENSITY_LIMITS.edges) {
     warnings.push(warning('density-limit', 'This projection exceeds the provisional interactive density envelope; narrow the filters before visual exploration.', null));
   }
@@ -150,10 +143,25 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
   const sortFacets = facets => [...facets].sort((a, b) => compareText(a.name, b.name) || compareText(a.id, b.id));
   const canonicalNodes = sortNodes(eligibleNodes);
   const canonicalEdges = sortEdges(eligibleEdges);
+  const revision = fingerprint(canonicalNodes, canonicalEdges, {
+    omitted_nodes: omittedNodes.length,
+    omitted_edges: omittedEdges.length,
+    warnings: warnings.map(({code, record_ref}) => ({code, ...(record_ref ? {record_ref} : {})}))
+  });
+  if (selectedEntityTypes) {
+    for (const typeId of selectedEntityTypes) {
+      if (!entityFacetIds.has(typeId)) warnings.push(warning('unknown-entity-filter', 'An Entity filter is no longer available in this projection and was ignored.', null));
+    }
+  }
+  if (selectedRelationshipTypes) {
+    for (const typeId of selectedRelationshipTypes) {
+      if (!relationshipFacetIds.has(typeId)) warnings.push(warning('unknown-relationship-filter', 'A Relationship filter is no longer available in this projection and was ignored.', null));
+    }
+  }
 
   return {
     schema_version: 1,
-    revision: fingerprint(canonicalNodes, canonicalEdges),
+    revision,
     nodes: visibleNodes,
     edges: visibleEdges,
     facets: {

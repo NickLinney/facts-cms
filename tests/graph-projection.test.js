@@ -27,7 +27,7 @@ test('populated fixture is deterministic and keeps directed/undirected semantics
   const first = project();
   const second = project();
   assert.deepEqual(first, second);
-  assert.equal(first.revision, '4ca0889e552623a86970102ad8471f50f3937146f04811ec415c2c4c628c17cf');
+  assert.equal(first.revision, '644bd341a02d5b9c95160a9cf2e17d76915e17603fea87bfec82713e96e49684');
   assert.deepEqual(first.nodes.map(node => node.id), [ids.entities.etienne, ids.entities.margot, ids.entities.feather, ids.entities.inn]);
   assert.deepEqual(first.nodes.map(node => node.label), first.nodes.map(node => node.name));
   assert.deepEqual(first.edges.map(edge => edge.directionality), ['undirected', 'directed', 'directed']);
@@ -92,6 +92,9 @@ test('malformed and unavailable rows are omitted with bounded warnings', () => {
   assert.ok(result.warnings.find(item => item.code === 'unknown-direction').message.includes('neutral'));
   assert.ok(result.warnings.every(item => !item.message.includes('not-a-uuid')));
   assert.equal(result.warnings.find(item => item.code === 'malformed-edge').record_id, undefined);
+  assert.match(result.warnings.find(item => item.code === 'unknown-direction').record_ref, /^ref-[0-9a-f]{8}$/);
+  assert.ok(result.warnings.every(item => !Object.values(item).includes(ids.relationships.knows)));
+  assert.notEqual(result.revision, projectGraph({nodes: populatedGraphFixture.nodes, edges: populatedGraphFixture.edges}).revision);
 });
 
 test('malformed nodes do not create placeholder facts, while missing names use a warning placeholder', () => {
