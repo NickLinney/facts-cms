@@ -21,6 +21,13 @@ test('effective client declarations are unique and source return restores graph 
   assert.match(appSource, /state\.graphSourceRecord=null;state\.graphReturnFocus=null;renderGraph\(\)/);
 });
 
+test('narrow Graph View keeps top-bar overflow inside a bounded scroll region', () => {
+  assert.match(stylesSource, /@media\(max-width:800px\)\{body\{overflow-x:hidden\}\.topbar\{height:auto;min-height:70px;flex-wrap:wrap;[^}]*overflow-x:hidden;max-width:100vw\}/);
+  assert.match(stylesSource, /\.ribbon\{order:3;flex:1 1 100%;width:100%;height:auto;min-width:0;flex-wrap:wrap;[^}]*overflow-x:auto\}/);
+  assert.match(stylesSource, /\.graph-summary\{overflow-wrap:anywhere\}/);
+  assert.match(stylesSource, /@media\(max-width:900px\)\{\.graph-layout\{grid-template-columns:1fr\}/);
+});
+
 test('structured graph output maps only directed relationships to arrows', () => {
   assert.match(appSource, /r\.directionality==='directed'\?'→':'—'/);
   assert.match(appSource, /data-graph-node/);
