@@ -1,16 +1,22 @@
 const crypto = require('node:crypto');
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MAX_LABEL_LENGTH = 120;
+const MAX_WARNING_LENGTH = 240;
 
 const isUuid = value => typeof value === 'string' && UUID_PATTERN.test(value);
 const text = value => typeof value === 'string' ? value.trim() : '';
+const boundedText = (value, limit) => {
+  const valueText = text(value);
+  return valueText.length > limit ? `${valueText.slice(0, limit - 1)}…` : valueText;
+};
 const safeRecordRef = recordId => isUuid(recordId)
   ? `ref-${crypto.createHash('sha256').update(recordId).digest('hex').slice(0, 8)}`
   : undefined;
 
 const warning = (code, message, recordId) => ({
-  code,
-  message,
+  code: boundedText(code, 48),
+  message: boundedText(message, MAX_WARNING_LENGTH),
   ...(safeRecordRef(recordId) ? {record_ref: safeRecordRef(recordId)} : {})
 });
 
@@ -56,7 +62,8 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
   for (const row of sortNodes(nodes)) {
     const id = row?.id;
     const typeId = text(row?.type_id);
-    const typeName = text(row?.type_name);
+    const rawTypeName = text(row?.type_name);
+    const typeName = boundedText(rawTypeName, MAX_LABEL_LENGTH);
     if (!isUuid(id) || !typeId || !typeName) {
       omittedNodes.push(row);
       warnings.push(warning('malformed-node', 'Entity row omitted because its stable identity or type is invalid.', id));
@@ -69,8 +76,11 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
     }
     seenNodeIds.add(id);
     const rawName = text(row.name);
-    const name = rawName || `Unnamed ${typeName}`;
+    const name = boundedText(rawName || `Unnamed ${typeName}`, MAX_LABEL_LENGTH);
     if (!rawName) warnings.push(warning('missing-node-name', 'Entity row uses a bounded placeholder because its display name is missing.', id));
+    if (rawName.length > MAX_LABEL_LENGTH || rawTypeName.length > MAX_LABEL_LENGTH) {
+      warnings.push(warning('bounded-label', 'Display label was truncated to the bounded graph output length.', id));
+    }
     eligibleNodes.push({id, name, type_name: typeName, type_id: typeId});
   }
 
@@ -81,7 +91,7 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
   }
   for (const node of eligibleNodes) {
     const key = `${node.type_id}\u0000${node.name}`;
-    node.label = labelCounts.get(key) > 1 ? `${node.name} · …${node.id.slice(-4)}` : node.name;
+    node.label = boundedText(labelCounts.get(key) > 1 ? `${node.name} · …${node.id.slice(-4)}` : node.name, MAX_LABEL_LENGTH);
   }
 
   const nodeById = new Map(eligibleNodes.map(node => [node.id, node]));
@@ -90,7 +100,8 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
   for (const row of sortEdges(edges)) {
     const id = row?.id;
     const typeId = text(row?.type_id);
-    const typeName = text(row?.type_name);
+    const rawTypeName = text(row?.type_name);
+    const typeName = boundedText(rawTypeName, MAX_LABEL_LENGTH);
     const source = text(row?.source ?? row?.from_entity_id);
     const target = text(row?.target ?? row?.to_entity_id);
     if (!isUuid(id) || !typeId || !typeName || !isUuid(source) || !isUuid(target)) {
@@ -113,6 +124,9 @@ const projectGraph = ({nodes = [], edges = [], entityTypes = null, relationshipT
     const directionality = rawDirectionality === 'directed' || rawDirectionality === 'undirected' ? rawDirectionality : 'unknown';
     if (directionality === 'unknown') {
       warnings.push(warning('unknown-direction', 'Relationship direction is unknown; the edge remains neutral and has no inferred arrow.', id));
+    }
+    if (rawTypeName.length > MAX_LABEL_LENGTH) {
+      warnings.push(warning('bounded-label', 'Display label was truncated to the bounded graph output length.', id));
     }
     eligibleEdges.push({
       id,

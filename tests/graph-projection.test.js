@@ -140,3 +140,17 @@ test('stale filters warn without exposing filter values and density stays explic
   assert.equal(dense.density.node_limit, DENSITY_LIMITS.nodes);
   assert.equal(dense.density.edge_limit, DENSITY_LIMITS.edges);
 });
+
+test('warning and label output remain hard bounded for hostile display text', () => {
+  const longText = 'x'.repeat(1000);
+  const result = projectGraph({
+    nodes: [{id: ids.entities.etienne, name: longText, type_id: ids.types.character, type_name: longText}],
+    edges: [{id: ids.relationships.knows, source: ids.entities.etienne, target: 'not-a-uuid', type_id: ids.types.knows, type_name: longText, directionality: 'directed'}]
+  });
+  assert.ok(result.nodes[0].name.length <= 120);
+  assert.ok(result.nodes[0].label.length <= 120);
+  assert.ok(result.nodes[0].type_name.length <= 120);
+  assert.ok(result.warnings.some(item => item.code === 'bounded-label'));
+  assert.ok(result.warnings.every(item => item.message.length <= 240));
+  assert.ok(result.warnings.every(item => item.code.length <= 48));
+});
