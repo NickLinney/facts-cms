@@ -22,8 +22,14 @@ test('structured graph output maps only directed relationships to arrows', () =>
   assert.match(appSource, /data-graph-action="inspect"/);
   assert.match(appSource, /data-graph-action="source-open"/);
   assert.match(appSource, /denseInput/);
+  assert.match(appSource, /const svg=denseInput\?'':/);
   assert.match(appSource, /graph-density-fallback/);
   assert.match(appSource, /setAttribute\('aria-live','polite'\)/);
+  assert.match(appSource, /onclick="inspectGraphItem\('node','\$\{e\.id\}'\)"/);
+  assert.match(appSource, /onclick="inspectGraphItem\('edge','\$\{r\.id\}'\)"/);
+  assert.match(appSource, /graph-source-record/);
+  assert.match(appSource, /state\.graphSourceRecord=\{kind,id\}/);
+  assert.match(appSource, /state\.graphSelection=null;state\.graphInspector=false/);
   assert.match(appSource, /target\?\.focus\(\)/);
   assert.match(stylesSource, /prefers-reduced-motion:\s*reduce/);
 });
