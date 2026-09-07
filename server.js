@@ -1,8 +1,8 @@
 const express = require('express');
 const path = require('node:path');
-const crypto = require('node:crypto');
 const { Pool } = require('pg');
 const packageInfo = require('./package.json');
+const {projectGraph} = require('./graph-projection');
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const runId = process.env.FACTS_RUN_ID || 'local';
@@ -95,26 +95,24 @@ app.post('/api/entities', async (req,res) => { const {typeId,name,data={}}=req.b
 app.put('/api/entities/:id', async (req,res) => { const {name,data={}}=req.body||{}; try { const type=await pool.query('SELECT t.schema FROM entity_records e JOIN type_definitions t ON t.id=e.type_id WHERE e.id=$1',[req.params.id]); if(!type.rowCount)return res.status(404).json({error:'Entity not found'}); const validation=validateData(type.rows[0].schema,data)||await validateReferences(type.rows[0].schema,data); if(validation)return res.status(400).json({error:validation}); const r=await pool.query('UPDATE entity_records SET name=COALESCE($1,name),data=$2 WHERE id=$3 RETURNING *',[name?.trim()||null,json(data),req.params.id]); res.json(r.rows[0]); } catch(e) { res.status(500).json({error:e.message}); } });
 app.delete('/api/entities/:id', async (req,res) => { try { const r=await pool.query('DELETE FROM entity_records WHERE id=$1',[req.params.id]); if(!r.rowCount)return res.status(404).json({error:'Entity not found'}); res.status(204).end(); } catch(e) { res.status(500).json({error:e.message}); } });
 app.get('/api/relationships', async (_req,res) => { try { const r=await pool.query('SELECT r.*,t.name AS type_name,f.name AS from_name,to_entity.name AS to_name FROM relationship_records r JOIN type_definitions t ON t.id=r.type_id JOIN entity_records f ON f.id=r.from_entity_id JOIN entity_records to_entity ON to_entity.id=r.to_entity_id ORDER BY r.created_at DESC'); res.json(r.rows); } catch(e) { res.status(500).json({error:e.message}); } });
+const parseGraphFilter = value => {
+  if (value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw || raw === 'all') return null;
+  if (raw === 'none') return [];
+  return raw.split(',').map(x=>x.trim()).filter(Boolean);
+};
 app.get('/api/graph', async (req,res) => { try {
-  const requestedEntityTypes = String(req.query.entity_types||'').split(',').map(x=>x.trim()).filter(Boolean);
-  const requestedRelationshipTypes = String(req.query.relationship_types||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const requestedEntityTypes = parseGraphFilter(req.query.entity_types);
+  const requestedRelationshipTypes = parseGraphFilter(req.query.relationship_types);
   const [nodes, edges] = await Promise.all([
     pool.query('SELECT e.id,e.name,t.name AS type_name,t.id AS type_id FROM entity_records e JOIN type_definitions t ON t.id=e.type_id ORDER BY e.name,e.id'),
     pool.query("SELECT r.id,r.from_entity_id AS source,r.to_entity_id AS target,r.type_id,t.name AS type_name,t.schema->>'directionality' AS directionality FROM relationship_records r JOIN type_definitions t ON t.id=r.type_id ORDER BY t.name,r.id")
   ]);
-  const warnings=[];
-  const eligibleNodes=nodes.rows;
-  const eligibleNodeIds=new Set(eligibleNodes.map(n=>n.id));
-  const eligibleEdges=edges.rows.filter(e=>eligibleNodeIds.has(e.source)&&eligibleNodeIds.has(e.target));
-  const visibleNodes=eligibleNodes.filter(n=>!requestedEntityTypes.length||requestedEntityTypes.includes(n.type_id));
-  const visibleNodeIds=new Set(visibleNodes.map(n=>n.id));
-  const relationshipEligible=eligibleEdges.filter(e=>!requestedRelationshipTypes.length||requestedRelationshipTypes.includes(e.type_id));
-  const visibleEdges=relationshipEligible.filter(e=>visibleNodeIds.has(e.source)&&visibleNodeIds.has(e.target));
-  const revision=crypto.createHash('sha256').update(JSON.stringify({nodes:eligibleNodes,edges:eligibleEdges})).digest('hex').slice(0,16);
-  res.json({schema_version:1,revision,nodes:visibleNodes,edges:visibleEdges,facets:{entity_types:[...new Set(eligibleNodes.map(n=>n.type_id))],relationship_types:[...new Set(eligibleEdges.map(e=>e.type_id))]},counts:{eligible_nodes:eligibleNodes.length,eligible_edges:eligibleEdges.length,visible_nodes:visibleNodes.length,visible_edges:visibleEdges.length,hidden_nodes:eligibleNodes.length-visibleNodes.length,hidden_edges:relationshipEligible.length-visibleEdges.length,omitted_nodes:nodes.rowCount-eligibleNodes.length,omitted_edges:edges.rowCount-eligibleEdges.length,warnings:warnings.length},warnings});
+  res.json(projectGraph({nodes:nodes.rows, edges:edges.rows, entityFilter:requestedEntityTypes, relationshipFilter:requestedRelationshipTypes}));
 } catch(e) { res.status(500).json({error:e.message}); } });
 app.post('/api/relationships', async (req,res) => { const {typeId,fromEntityId,toEntityId,data={}}=req.body||{}; if(!typeId||!fromEntityId||!toEntityId) return res.status(400).json({error:'typeId, fromEntityId and toEntityId are required'}); try { const validation=await validateRelationship(typeId,fromEntityId,toEntityId,data); if(validation)return res.status(400).json({error:validation}); const r=await pool.query('INSERT INTO relationship_records (type_id,from_entity_id,to_entity_id,data) VALUES ($1,$2,$3,$4) RETURNING *',[typeId,fromEntityId,toEntityId,json(data)]); res.status(201).json(r.rows[0]); } catch(e) { res.status(500).json({error:e.message}); } });
 app.put('/api/relationships/:id', async (req,res) => { const {typeId,fromEntityId,toEntityId,data={}}=req.body||{}; try { const current=await pool.query('SELECT type_id,from_entity_id,to_entity_id FROM relationship_records WHERE id=$1',[req.params.id]); if(!current.rowCount)return res.status(404).json({error:'Relationship not found'}); const validation=await validateRelationship(typeId||current.rows[0].type_id,fromEntityId||current.rows[0].from_entity_id,toEntityId||current.rows[0].to_entity_id,data); if(validation)return res.status(400).json({error:validation}); const r=await pool.query('UPDATE relationship_records SET type_id=COALESCE($1,type_id),from_entity_id=COALESCE($2,from_entity_id),to_entity_id=COALESCE($3,to_entity_id),data=$4 WHERE id=$5 RETURNING *',[typeId,fromEntityId,toEntityId,json(data),req.params.id]); res.json(r.rows[0]); } catch(e) { res.status(500).json({error:e.message}); } });
 app.get('*', (_req,res) => res.sendFile(path.join(__dirname,'public','index.html')));
 if(require.main===module) app.listen(port,()=>console.log(`FACTS listening on http://localhost:${port}`));
-module.exports={app,pool,normalizeSchema,validateData,validateSchema,validatePresentationConfig};
+module.exports={app,pool,normalizeSchema,validateData,validateSchema,validatePresentationConfig,parseGraphFilter,projectGraph};
