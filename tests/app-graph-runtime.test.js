@@ -8,9 +8,13 @@ const stylesSource = fs.readFileSync(require.resolve('../public/styles.css'), 'u
 test('effective browser loader consumes the canonical graph response exactly once', () => {
   assert.equal((appSource.match(/async function load\(/g) || []).length, 1);
   assert.match(appSource, /state\.graph\]=await Promise\.all\(\[api\('\/api\/types'\),api\('\/api\/entities'\),api\('\/api\/relationships'\),api\('\/api\/graph'\)\]\)/);
+  assert.match(appSource, /load\(\)\.catch\(err=>toast\(err\.message\)\);\s*$/);
 });
 
-test('source return restores focus to the originating graph action', () => {
+test('effective client declarations are unique and source return restores graph context', () => {
+  const declarations = [...appSource.matchAll(/^function ([A-Za-z0-9_]+)\(/gm)].map(match => match[1]);
+  const duplicates = declarations.filter((name, index) => declarations.indexOf(name) !== index);
+  assert.deepEqual(duplicates, []);
   assert.match(appSource, /state\.graphSelection=\{kind,id\};state\.graphInspector=true;state\.graphReturnFocus=\{kind,id\};state\.graphSourceRecord=\{kind,id\}/);
   assert.match(appSource, /function restoreGraphReturnFocus\(\)/);
   assert.match(appSource, /state\.graphSourceRecord=null;showSection\('graph'\);restoreGraphReturnFocus\(\)/);
